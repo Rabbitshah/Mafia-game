@@ -86,7 +86,16 @@ export function createGameServer(opts: ServerOptions) {
 
   const httpServer = createHttpServer(app);
   const origins = opts.clientOrigin.split(',').map((s) => s.trim()).filter(Boolean);
-  const io = new Server(httpServer, { cors: { origin: opts.allowLan ? [...origins, LAN_ORIGIN] : origins } });
+  const originAllowed = (origin: string) => origins.includes(origin) || (opts.allowLan === true && LAN_ORIGIN.test(origin));
+  const io = new Server(httpServer, {
+    cors: { origin: opts.allowLan ? [...origins, LAN_ORIGIN] : origins },
+    // CORS does not cover raw WebSockets, so check Origin on every connection too.
+    // Browsers always send Origin; requests without one (scripts, tests) are not browser pages, so they pass.
+    allowRequest: (req, callback) => {
+      const origin = req.headers.origin;
+      callback(null, origin === undefined || originAllowed(origin));
+    },
+  });
 
   const now = () => Date.now();
 

@@ -31,7 +31,7 @@ Trust model: friends-only, low stakes, but **cheating by reading network data is
 | Room code guessing | 6 chars from unambiguous alphabet, `crypto.randomInt`, join rate limit per IP |
 | Spam and DoS | 10 events per second per socket (the flooded caller gets a `RATE_LIMIT` reply), 5 room creations per minute per IP, 15 players per room, 50 rooms max. Per-IP limits ignore `X-Forwarded-For` unless `TRUST_PROXY_HOPS` is set; then the address is counted from the right, because the left side is client-controlled |
 | XSS via names | Name 1 to 20 chars, plain text only, React escapes by default, never `dangerouslySetInnerHTML` |
-| Cross-origin abuse | CORS and Socket.IO `cors.origin` = exact client origin only. Private-LAN origins and `/lan` are allowed only when `ALLOW_LAN=1` and `NODE_ENV!=production` (explicit opt-in, tested in `origin.test.ts`) |
+| Cross-origin abuse | CORS and Socket.IO `cors.origin` = exact client origin only. Private-LAN origins and `/lan` are allowed only when `ALLOW_LAN=1` and `NODE_ENV!=production` (explicit opt-in, tested in `origin.test.ts`). Raw WebSockets ignore CORS, so the server also checks the `Origin` header on every connection (`allowRequest`). Clients that send no Origin (scripts, bots) still connect, so this stops other websites, not determined attackers |
 | Voice unmute cheating | Mute enforced by LiveKit permissions from the server, not by client UI |
 | LiveKit secret leak | Server env only. Never in client bundle, never in git |
 | Dependency risk | `npm audit` before deploy, lockfile committed |

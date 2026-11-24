@@ -1,5 +1,6 @@
 import { get } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { io as connect } from 'socket.io-client';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createGameServer } from './server';
 
@@ -63,5 +64,38 @@ describe('CORS origins', () => {
   it('LAN dev mode: /lan answers', async () => {
     const port = await start(true);
     expect((await request(port, '/lan', 'http://localhost:5173')).status).toBe(200);
+  });
+});
+
+describe('WebSocket origin check', () => {
+  const tryConnect = (port: number, origin?: string) =>
+    new Promise<boolean>((resolve) => {
+      const socket = connect(`http://127.0.0.1:${port}`, {
+        transports: ['websocket'],
+        reconnection: false,
+        extraHeaders: origin ? { origin } : {},
+      });
+      socket.on('connect', () => {
+        socket.close();
+        resolve(true);
+      });
+      socket.on('connect_error', () => {
+        socket.close();
+        resolve(false);
+      });
+    });
+
+  it('accepts the configured origin and clients with no Origin header, refuses other origins', async () => {
+    const port = await start(false);
+    expect(await tryConnect(port, 'http://localhost:5173')).toBe(true);
+    expect(await tryConnect(port)).toBe(true);
+    expect(await tryConnect(port, 'https://evil.example.com')).toBe(false);
+    expect(await tryConnect(port, 'http://192.168.29.86:5173')).toBe(false);
+  });
+
+  it('LAN dev mode also accepts private-network origins over WebSocket', async () => {
+    const port = await start(true);
+    expect(await tryConnect(port, 'http://192.168.29.86:5173')).toBe(true);
+    expect(await tryConnect(port, 'https://evil.example.com')).toBe(false);
   });
 });
