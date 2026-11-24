@@ -1,0 +1,19 @@
+# Render Blueprint for the game server. Review before using; values marked "verify" are unconfirmed.
+services:
+  - type: web
+    name: mafia-server
+    runtime: node
+    plan: free
+    # tsx (which runs the TypeScript server) is a dev dependency, so install dev dependencies too.
+    buildCommand: npm ci --include=dev
+    startCommand: npm run start -w apps/server
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: CLIENT_ORIGIN
+        sync: false # set to your Vercel URL, e.g. https://mafia-night.vercel.app
+      - key: TRUST_PROXY_HOPS
+        value: "1" # verify against the real X-Forwarded-For header after the first deploy
